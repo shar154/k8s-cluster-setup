@@ -4,11 +4,13 @@ import { Construct } from 'constructs';
 
 
 export class NetworkStack extends cdk.Stack {
+  public readonly vpc: Vpc;
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     // Create a VPC with 2 AZs
-    const vpc = new Vpc(this, 'KubernetesAppVPC', {
+    this.vpc = new Vpc(this, 'kubernetesAppVpc', {
       ipAddresses: IpAddresses.cidr('10.11.0.0/16'),
       maxAzs: 3,
       // Define the subnet configuration
