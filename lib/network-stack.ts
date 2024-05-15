@@ -23,7 +23,7 @@ export class NetworkStack extends cdk.Stack {
         {
           cidrMask: 24,
           name: 'Application',
-          subnetType: SubnetType.PRIVATE_ISOLATED,
+          subnetType: SubnetType.PRIVATE_WITH_EGRESS,
         },
         {
           cidrMask: 28,
@@ -31,12 +31,12 @@ export class NetworkStack extends cdk.Stack {
           subnetType: SubnetType.PRIVATE_ISOLATED,
         }
       ],
-      restrictDefaultSecurityGroup: false
+      restrictDefaultSecurityGroup: false,
       // Configure a single NAT Gateway
-      // natGateways: 0,
-      // natGatewaySubnets: {
-      //   subnetGroupName: 'Public' // Ensure NAT Gateway is placed in a public subnet
-      // }
+      natGateways: 1,
+      natGatewaySubnets: {
+        subnetGroupName: 'Public' // Ensure NAT Gateway is placed in a public subnet
+      }
     });
   }
 }
