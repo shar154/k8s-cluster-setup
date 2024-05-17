@@ -5,10 +5,9 @@
     "cdk-base": "bin/cdk-base.js"
   },
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc -w",
+    "deploy": "cdk deploy --all --outputs-file cdk-outputs.json",
     "test": "jest",
-    "cdk": "cdk"
+    "build": "cdk synth"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
