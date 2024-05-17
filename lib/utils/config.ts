@@ -1,0 +1,15 @@
+import * as dotenv from "dotenv";
+import path = require("path");
+
+// Configure dotenv to read from our `.env` file
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+
+// Define a TS Type to type the returned envs from our function below.
+export type ConfigProps = {
+    DOMAIN: string;
+};
+
+// 3. Define a function to retrieve our env variables
+export const getConfig = (): ConfigProps => ({
+    DOMAIN: process.env.DOMAIN || ""
+});
