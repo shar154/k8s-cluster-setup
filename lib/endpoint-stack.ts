@@ -3,7 +3,11 @@ import { Construct } from 'constructs';
 
 export class EndpointStack extends Stack {
     constructor(scope: Construct, id: string, props: StackProps & { vpc: ec2.Vpc }) {
-    super(scope, id, props);
+        super(scope, id, {
+            env: { 
+                account: process.env.CDK_DEFAULT_ACCOUNT,
+                region: process.env.CDK_DEFAULT_REGION },
+            ...props});
 
         // Read the bucket name from the environment variable
         const bucketName = process.env.LEARNING_BUCKET || 'arn:aws:s3:::learning-the-cloud-81927n1yd9';

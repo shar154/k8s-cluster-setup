@@ -7,7 +7,11 @@ export class NetworkStack extends cdk.Stack {
   public readonly vpc: Vpc;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
-    super(scope, id, props);
+    super(scope, id, {
+      env: { 
+        account: process.env.CDK_DEFAULT_ACCOUNT,
+        region: process.env.CDK_DEFAULT_REGION },
+      ...props});
 
     // Create a VPC with 2 AZs
     this.vpc = new Vpc(this, 'kubernetesAppVpc', {
