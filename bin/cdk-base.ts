@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { NetworkStack } from '../lib/network-stack';
-import { BastionHostStack } from '../lib/bastion-host-stack';
-import { ComputeStack } from '../lib/compute-stack';
-import { EndpointStack } from '../lib/endpoint-stack';
+import { NetworkStack } from '../lib/stacks/network-stack';
+import { BastionHostStack } from '../lib/stacks/bastion-host-stack';
+import { ComputeStack } from '../lib/stacks/compute-stack';
+import { EndpointStack } from '../lib/stacks/endpoint-stack';
 import { getConfig } from '../lib/utils/config';
 
 const config = getConfig();
