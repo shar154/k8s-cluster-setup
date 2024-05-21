@@ -1,38 +1,45 @@
-import { Stack, StackProps, aws_ec2 as ec2 } from 'aws-cdk-lib';
+import { Aws, RemovalPolicy} from 'aws-cdk-lib';
+import { Stack, StackProps, Duration, aws_ec2 as ec2 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
+import * as route53 from 'aws-cdk-lib/aws-route53';
 
 export class ComputeStack extends Stack {
     constructor(scope: Construct, id: string, props: StackProps & { 
-        vpc: ec2.Vpc, bastionSgId: string
-    }) 
-    {
-        super(scope, id, {
-            env: { 
-                account: process.env.CDK_DEFAULT_ACCOUNT,
-                region: process.env.CDK_DEFAULT_REGION },
-            ...props});
+        vpc: ec2.Vpc, bastionSgId: string, domain: string, ssh_port: string }) {
+            super(scope, id, {
+                env: { 
+                    account: process.env.CDK_DEFAULT_ACCOUNT,
+                    region: process.env.CDK_DEFAULT_REGION },
+                ...props});
 
         // Define a security group for the bastion host
         const bastionSecurityGroup = new ec2.SecurityGroup(this, 'BastionSG', {
             vpc: props.vpc,
-            description: 'Allow SSH access from the Internet on port 3114',
+            description: `Allow SSH access from the Internet on port ${props.ssh_port}`,
             allowAllOutbound: true
         });
 
-        // Allow SSH access on port 3114
-        bastionSecurityGroup.addIngressRule(ec2.Peer.securityGroupId(props.bastionSgId), ec2.Port.tcp(3114), 'Allow SSH access from the internet on port 3114');
+        // Allow SSH access on port in props.ssh_port
+        bastionSecurityGroup.addIngressRule(ec2.Peer.securityGroupId(props.bastionSgId), ec2.Port.tcp(parseInt(props.ssh_port) || 22), `Allow SSH access from the internet on port ${props.ssh_port}`);
         
         const keyPair = ec2.KeyPair.fromKeyPairName(this, 'KeyPair', 'k8s-cluster-demo');
-
-        const userData = ec2.UserData.forLinux();
-        userData.addCommands(
-            'sed -i \'s/^#Port 22/Port 3114/\' /etc/ssh/sshd_config',
-            'service sshd restart',
-            'iptables -A INPUT -p tcp --dport 3114 -j ACCEPT',
-            'service iptables save',
-            'service iptables restart'
-        );
         
+        const cfn_init = ec2.CloudFormationInit.fromElements(
+
+            ec2.InitCommand.shellCommand('sleep 10'),
+            ec2.InitFile.fromFileInline(
+                '/etc/ssh.sh',
+                './lib/scripts/ssh.sh', 
+            ),
+            ec2.InitCommand.shellCommand('chmod +x /etc/ssh.sh'),
+            ec2.InitCommand.shellCommand(`/etc/ssh.sh ${props.ssh_port}`),
+        );
+
+        // Route 53 Hosted Zone for the domain
+        const hostedZone = route53.HostedZone.fromLookup(this, 'HostedZone', {
+            domainName: props.domain
+        });
+
         // Create a K8S Control Plane EC2 instance in the Application subnet
         const controlPlaneInstance = new ec2.Instance(this, 'ControlPlane', {
         vpc: props.vpc,
@@ -43,11 +50,21 @@ export class ComputeStack extends Stack {
         instanceType: new ec2.InstanceType('t3.nano'),
         keyPair: keyPair, // Ensure this key is available in your AWS account
         securityGroup: bastionSecurityGroup,
-        userData: userData,
+        init: cfn_init,
+        initOptions: {
+            timeout: Duration.minutes(15),
+        },
         blockDevices: [{
             deviceName: '/dev/sdh',  // This is the device name; adjust if necessary
             volume: ec2.BlockDeviceVolume.ebs(10)  // 10 GB EBS volume
             }]
+        });
+
+        // A Record in Route 53
+        new route53.ARecord(this, 'k8sControlPlaneARecord', {
+            zone: hostedZone,
+            recordName: `k8s.${props.domain}`,
+            target: route53.RecordTarget.fromIpAddresses(controlPlaneInstance.instancePrivateIp)
         });
 
         // Create a worker EC2 instance in the Application subnet
@@ -60,11 +77,21 @@ export class ComputeStack extends Stack {
         instanceType: new ec2.InstanceType('t3.nano'),
         keyPair: keyPair, // Ensure this key is available in your AWS account
         securityGroup: bastionSecurityGroup,
-        userData: userData,
+        init: cfn_init,
+        initOptions: {
+            timeout: Duration.minutes(15),
+        },
         blockDevices: [{
             deviceName: '/dev/sdh',  // This is the device name; adjust if necessary
             volume: ec2.BlockDeviceVolume.ebs(10)  // 10 GB EBS volume
             }]
+        });
+
+        // A Record in Route 53
+        new route53.ARecord(this, 'k8sWorkerARecord', {
+            zone: hostedZone,
+            recordName: `k8s-worker.${props.domain}`,
+            target: route53.RecordTarget.fromIpAddresses(workerInstance.instancePrivateIp)
         });
     
     }
