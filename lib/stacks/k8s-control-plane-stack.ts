@@ -1,9 +1,8 @@
-import { Aws, RemovalPolicy} from 'aws-cdk-lib';
 import { Stack, StackProps, Duration, aws_ec2 as ec2 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 
-export class ComputeStack extends Stack {
+export class k8sControlPlaneStack extends Stack {
     constructor(scope: Construct, id: string, props: StackProps & { 
         vpc: ec2.Vpc, bastionSgId: string, domain: string, ssh_port: string }) {
             super(scope, id, {
@@ -65,34 +64,6 @@ export class ComputeStack extends Stack {
             zone: hostedZone,
             recordName: `k8s.${props.domain}`,
             target: route53.RecordTarget.fromIpAddresses(controlPlaneInstance.instancePrivateIp)
-        });
-
-        // Create a worker EC2 instance in the Application subnet
-        const workerInstance = new ec2.Instance(this, 'Worker', {
-        vpc: props.vpc,
-        vpcSubnets: {
-            subnetGroupName: 'Application'  // This will select all subnets named 'Application'
-        },
-        machineImage: ec2.MachineImage.latestAmazonLinux2(),
-        instanceType: new ec2.InstanceType('t3.nano'),
-        keyPair: keyPair, // Ensure this key is available in your AWS account
-        securityGroup: bastionSecurityGroup,
-        init: cfn_init,
-        initOptions: {
-            timeout: Duration.minutes(15),
-        },
-        blockDevices: [{
-            deviceName: '/dev/sdh',  // This is the device name; adjust if necessary
-            volume: ec2.BlockDeviceVolume.ebs(10)  // 10 GB EBS volume
-            }]
-        });
-
-        // A Record in Route 53
-        new route53.ARecord(this, 'k8sWorkerARecord', {
-            zone: hostedZone,
-            recordName: `k8s-worker.${props.domain}`,
-            target: route53.RecordTarget.fromIpAddresses(workerInstance.instancePrivateIp)
-        });
-    
+        });    
     }
 }
