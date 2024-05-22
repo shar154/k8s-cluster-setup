@@ -30,8 +30,15 @@ export class k8sControlPlaneStack extends Stack {
                 '/etc/ssh.sh',
                 './lib/scripts/ssh.sh', 
             ),
-            ec2.InitCommand.shellCommand('chmod +x /etc/ssh.sh'),
-            ec2.InitCommand.shellCommand(`/etc/ssh.sh ${props.ssh_port}`),
+            // ec2.InitCommand.shellCommand('chmod +x /etc/ssh.sh'),
+            // ec2.InitCommand.shellCommand(`/etc/ssh.sh ${props.ssh_port}`),
+            
+            ec2.InitFile.fromFileInline(
+                '/etc/k8s-ports-control.sh',
+                './lib/scripts/k8s-ports-control.sh', 
+            ),
+            // ec2.InitCommand.shellCommand('chmod +x /etc/k8s-ports-control.sh'),
+            // ec2.InitCommand.shellCommand(`/etc/k8s-ports-control.sh`),
         );
 
         // Route 53 Hosted Zone for the domain
@@ -41,23 +48,39 @@ export class k8sControlPlaneStack extends Stack {
 
         // Create a K8S Control Plane EC2 instance in the Application subnet
         const controlPlaneInstance = new ec2.Instance(this, 'ControlPlane', {
-        vpc: props.vpc,
-        vpcSubnets: {
-            subnetGroupName: 'Application'  // This will select all subnets named 'Application'
-        },
-        machineImage: ec2.MachineImage.latestAmazonLinux2(),
-        instanceType: new ec2.InstanceType('t3.nano'),
-        keyPair: keyPair, // Ensure this key is available in your AWS account
-        securityGroup: bastionSecurityGroup,
-        init: cfn_init,
-        initOptions: {
-            timeout: Duration.minutes(15),
-        },
-        blockDevices: [{
-            deviceName: '/dev/sdh',  // This is the device name; adjust if necessary
-            volume: ec2.BlockDeviceVolume.ebs(10)  // 10 GB EBS volume
-            }]
+            vpc: props.vpc,
+            vpcSubnets: {
+                subnetGroupName: 'Application'  // This will select all subnets named 'Application'
+            },
+            machineImage: ec2.MachineImage.latestAmazonLinux2023(),
+            instanceType: new ec2.InstanceType('t3.nano'),
+            keyPair: keyPair, // Ensure this key is available in your AWS account
+            securityGroup: bastionSecurityGroup,
+            init: cfn_init,
+            initOptions: {
+                timeout: Duration.minutes(5),
+            },
+            blockDevices: [{
+                deviceName: '/dev/sdh',  // This is the device name; adjust if necessary
+                volume: ec2.BlockDeviceVolume.ebs(10)  // 10 GB EBS volume
+                }]
         });
+        
+        // Security Group for Kubernetes Control Plane
+        const controlPlaneSG = new ec2.SecurityGroup(this, 'ControlPlaneSG', {
+            vpc: props.vpc,
+            description: 'Security group for Kubernetes control plane',
+            allowAllOutbound: true // Allows all outbound traffic by default
+        });
+
+      // Inbound rules for Control Plane
+        controlPlaneSG.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(6443), 'Allow Kubernetes API Server');
+        controlPlaneSG.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcpRange(2379, 2380), 'Allow etcd access');
+        controlPlaneSG.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(10250), 'Allow Kubelet access');
+        controlPlaneSG.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(10259), 'Allow kube-scheduler');
+        controlPlaneSG.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(10257), 'Allow kube-controller-manager');
+
+        controlPlaneInstance.addSecurityGroup(controlPlaneSG);
 
         // A Record in Route 53
         new route53.ARecord(this, 'k8sControlPlaneARecord', {

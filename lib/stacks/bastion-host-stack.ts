@@ -33,8 +33,8 @@ export class BastionHostStack extends Stack {
                 '/etc/ssh.sh',
                 './lib/scripts/ssh.sh', 
             ),
-            ec2.InitCommand.shellCommand('chmod +x /etc/ssh.sh'),
-            ec2.InitCommand.shellCommand(`/etc/ssh.sh ${props.ssh_port}`),
+            // ec2.InitCommand.shellCommand('chmod +x /etc/ssh.sh'),
+            // ec2.InitCommand.shellCommand(`/etc/ssh.sh ${props.ssh_port}`),
         );
 
         // Create a bastion host in the Public subnet

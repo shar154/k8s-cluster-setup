@@ -12,7 +12,7 @@ const config = getConfig();
 
 const app = new cdk.App();
 const networkStack = new NetworkStack(app, 'NetworkStack');
-const endpointStack = new EndpointStack(app, 'EndpointStack', {vpc: networkStack.vpc});
+// const endpointStack = new EndpointStack(app, 'EndpointStack', {vpc: networkStack.vpc});
 const bastionStack = new BastionHostStack(app, 'BastionStack', 
   {
       vpc: networkStack.vpc, 
@@ -27,9 +27,9 @@ const k8scontrolPlaneStack = new k8sControlPlaneStack(app, 'k8sControlPlaneStack
     ssh_port: config.SSH_PORT,
   });
 
-const k8sworkerStack = new k8sWorkerStack(app, 'k8sWorkerStack', 
-  { vpc: networkStack.vpc,
-    bastionSgId: bastionStack.bastionSgId,
-    domain: config.DOMAIN,
-    ssh_port: config.SSH_PORT,
-  });
+// const k8sworkerStack = new k8sWorkerStack(app, 'k8sWorkerStack', 
+//   { vpc: networkStack.vpc,
+//     bastionSgId: bastionStack.bastionSgId,
+//     domain: config.DOMAIN,
+//     ssh_port: config.SSH_PORT,
+//   });

@@ -32,6 +32,13 @@ export class k8sWorkerStack extends Stack {
             ),
             ec2.InitCommand.shellCommand('chmod +x /etc/ssh.sh'),
             ec2.InitCommand.shellCommand(`/etc/ssh.sh ${props.ssh_port}`),
+            
+            ec2.InitFile.fromFileInline(
+                '/etc/k8s-ports-control.sh',
+                './lib/scripts/k8s-ports-control.sh', 
+            ),
+            ec2.InitCommand.shellCommand('chmod +x /etc/k8s-ports-worker.sh'),
+            ec2.InitCommand.shellCommand(`/etc/k8s-ports-worker.sh`),
         );
 
         // Route 53 Hosted Zone for the domain
@@ -41,23 +48,38 @@ export class k8sWorkerStack extends Stack {
 
         // Create a worker EC2 instance in the Application subnet
         const workerInstance = new ec2.Instance(this, 'Worker', {
-        vpc: props.vpc,
-        vpcSubnets: {
-            subnetGroupName: 'Application'  // This will select all subnets named 'Application'
-        },
-        machineImage: ec2.MachineImage.latestAmazonLinux2(),
-        instanceType: new ec2.InstanceType('t3.nano'),
-        keyPair: keyPair, // Ensure this key is available in your AWS account
-        securityGroup: bastionSecurityGroup,
-        init: cfn_init,
-        initOptions: {
-            timeout: Duration.minutes(15),
-        },
-        blockDevices: [{
-            deviceName: '/dev/sdh',  // This is the device name; adjust if necessary
-            volume: ec2.BlockDeviceVolume.ebs(10)  // 10 GB EBS volume
-            }]
+            vpc: props.vpc,
+            vpcSubnets: {
+                subnetGroupName: 'Application'  // This will select all subnets named 'Application'
+            },
+            machineImage: ec2.MachineImage.latestAmazonLinux2(),
+            instanceType: new ec2.InstanceType('t3.nano'),
+            keyPair: keyPair, // Ensure this key is available in your AWS account
+            securityGroup: bastionSecurityGroup,
+            init: cfn_init,
+            initOptions: {
+                timeout: Duration.minutes(15),
+            },
+            blockDevices: [{
+                deviceName: '/dev/sdh',  // This is the device name; adjust if necessary
+                volume: ec2.BlockDeviceVolume.ebs(10)  // 10 GB EBS volume
+                }]
         });
+
+        // Security Group for Kubernetes Worker Nodes
+        const workerNodeSG = new ec2.SecurityGroup(this, 'WorkerNodeSG', {
+            vpc: props.vpc,
+            description: 'Security group for Kubernetes worker nodes',
+            allowAllOutbound: true
+        });
+    
+        // Inbound rules for Worker Nodes
+        workerNodeSG.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(10250), 'Allow Kubelet access');
+        workerNodeSG.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(10256), 'Allow Kube-proxy access');
+        workerNodeSG.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcpRange(30000, 32767), 'Allow NodePort Services access');
+        workerNodeSG.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.udpRange(30000, 32767), 'Allow NodePort Services access');
+
+        workerInstance.addSecurityGroup(workerNodeSG);
 
         // A Record in Route 53
         new route53.ARecord(this, 'k8sWorkerARecord', {
