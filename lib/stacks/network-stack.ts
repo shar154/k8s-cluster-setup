@@ -27,7 +27,7 @@ export class NetworkStack extends cdk.Stack {
         {
           cidrMask: 24,
           name: 'Application',
-          subnetType: SubnetType.PRIVATE_WITH_EGRESS,
+          subnetType: SubnetType.PRIVATE_ISOLATED,
         },
         {
           cidrMask: 28,

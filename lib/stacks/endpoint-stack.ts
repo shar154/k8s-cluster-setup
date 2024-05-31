@@ -18,12 +18,33 @@ export class EndpointStack extends Stack {
             subnets: [{ subnetGroupName: 'Application' }]
         });
 
-        // Optionally, restrict policies to allow only specific bucket
+        // Restrict policies to allow only specific bucket
         s3Endpoint.addToPolicy(new iam.PolicyStatement({
             actions: ["s3:GetObject", "s3:ListBucket"],
             resources: [`arn:aws:s3:::${bucketName}`, `arn:aws:s3:::${bucketName}/*`],
             principals: [new iam.ArnPrincipal('*')],
             effect: iam.Effect.ALLOW
         }));
+
+            // SSM VPC Endpoints
+        const ssmEndpoint = props.vpc.addInterfaceEndpoint('SsmEndpoint', {
+            service: ec2.InterfaceVpcEndpointAwsService.SSM,
+            subnets: { subnetGroupName: 'Application' }
+        });
+
+        const ssmMessagesEndpoint = props.vpc.addInterfaceEndpoint('SsmMessagesEndpoint', {
+            service: ec2.InterfaceVpcEndpointAwsService.SSM_MESSAGES,
+            subnets: { subnetGroupName: 'Application'},
+        });
+        const ec2MessagesEndpoint = props.vpc.addInterfaceEndpoint('Ec2MessagesEndpoint', {
+            service: ec2.InterfaceVpcEndpointAwsService.EC2_MESSAGES,
+            subnets: { subnetGroupName: 'Application'},
+        });
+    
+        const kmsEndpoint = props.vpc.addInterfaceEndpoint('KmsEndpoint', {
+            service: ec2.InterfaceVpcEndpointAwsService.KMS,
+            subnets: { subnetGroupName: 'Application'},
+        });
+
     }
 }

@@ -1,6 +1,7 @@
 import { Stack, StackProps, Duration, aws_ec2 as ec2 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as iam from 'aws-cdk-lib/aws-iam';
 
 export class BastionHostStack extends Stack {
     public readonly bastionSgId: string;
@@ -20,11 +21,23 @@ export class BastionHostStack extends Stack {
         });
 
         // Allow SSH access on port in props.ssh_port
-        bastionSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(parseInt(props.ssh_port) || 22), `Allow SSH access from the internet on port ${props.ssh_port}`);
+        bastionSecurityGroup.addIngressRule(
+            ec2.Peer.anyIpv4(), 
+            ec2.Port.tcp(parseInt(props.ssh_port) || 22), 
+            `Allow SSH access from the internet on port ${props.ssh_port}`);
 
         this.bastionSgId = bastionSecurityGroup.securityGroupId;  // Pass sgID out to give application tier access
 
         const keyPair = ec2.KeyPair.fromKeyPairName(this, 'KeyPair', 'k8s-cluster-demo');
+
+        // Create an IAM role for the bastion host
+        const role = new iam.Role(this, 'BastionRole', {
+            assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
+            managedPolicies: [
+                iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'),
+                iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonEC2RoleforSSM')
+            ],
+        });
 
         const cfn_init = ec2.CloudFormationInit.fromElements(
 
@@ -45,9 +58,10 @@ export class BastionHostStack extends Stack {
             machineImage: ec2.MachineImage.latestAmazonLinux2(),
             keyPair: keyPair, // Ensure this key is available in your AWS account
             securityGroup: bastionSecurityGroup,
+            role: role,
             init: cfn_init,
             initOptions: {
-                timeout: Duration.minutes(15),
+                timeout: Duration.minutes(5),
             },
         });
 
