@@ -39,16 +39,16 @@ export class BastionHostStack extends Stack {
             ],
         });
 
-        const cfn_init = ec2.CloudFormationInit.fromElements(
+        // const cfn_init = ec2.CloudFormationInit.fromElements(
 
-            ec2.InitCommand.shellCommand('sleep 10'),
-            ec2.InitFile.fromFileInline(
-                '/etc/ssh.sh',
-                './lib/scripts/ssh.sh', 
-            ),
-            ec2.InitCommand.shellCommand('chmod +x /etc/ssh.sh'),
-            ec2.InitCommand.shellCommand(`/etc/ssh.sh ${props.ssh_port}`),
-        );
+            // ec2.InitCommand.shellCommand('sleep 10'),
+            // ec2.InitFile.fromFileInline(
+            //     '/etc/ssh.sh',
+            //     './lib/scripts/ssh.sh', 
+            // ),
+            // ec2.InitCommand.shellCommand('chmod +x /etc/ssh.sh'),
+            // ec2.InitCommand.shellCommand(`/etc/ssh.sh ${props.ssh_port}`),
+        // );
 
         // Create a bastion host in the Public subnet
         const bastion = new ec2.Instance(this, 'BastionHost', {
@@ -59,10 +59,10 @@ export class BastionHostStack extends Stack {
             keyPair: keyPair, // Ensure this key is available in your AWS account
             securityGroup: bastionSecurityGroup,
             role: role,
-            init: cfn_init,
-            initOptions: {
-                timeout: Duration.minutes(5),
-            },
+            // init: cfn_init,
+            // initOptions: {
+            //     timeout: Duration.minutes(5),
+            // },
         });
 
         // Route 53 Hosted Zone for the domain
