@@ -7,6 +7,10 @@ import { k8sWorkerStack } from '../lib/stacks/k8s-worker-stack';
 import { k8sControlPlaneStack } from '../lib/stacks/k8s-control-plane-stack';
 import { EndpointStack } from '../lib/stacks/endpoint-stack';
 import { getConfig } from '../lib/utils/config';
+import { AwsSolutionsChecks } from 'cdk-nag'
+import { Aspects } from 'aws-cdk-lib';
+
+
 
 const config = getConfig();
 
@@ -19,19 +23,21 @@ const bastionStack = new BastionHostStack(app, 'BastionStack',
       ssh_port: config.SSH_PORT,
   });
 
-const k8scontrolPlaneStack = new k8sControlPlaneStack(app, 'k8sControlPlaneStack', 
-  { vpc: networkStack.vpc,
-    bastionSgId: bastionStack.bastionSgId,
-    domain: config.DOMAIN,
-    ssh_port: config.SSH_PORT,
-  });
-
-const endpointStack = new EndpointStack(app, 'EndpointStack', {vpc: networkStack.vpc});
+// const k8scontrolPlaneStack = new k8sControlPlaneStack(app, 'k8sControlPlaneStack', 
+//   { vpc: networkStack.vpc,
+//     bastionSgId: bastionStack.bastionSgId,
+//     domain: config.DOMAIN,
+//     ssh_port: config.SSH_PORT,
+//   });
 
 
-const k8sworkerStack = new k8sWorkerStack(app, 'k8sWorkerStack', 
-  { vpc: networkStack.vpc,
-    bastionSgId: bastionStack.bastionSgId,
-    domain: config.DOMAIN,
-    ssh_port: config.SSH_PORT,
-  });
+// const k8sworkerStack = new k8sWorkerStack(app, 'k8sWorkerStack', 
+//   { vpc: networkStack.vpc,
+//     bastionSgId: bastionStack.bastionSgId,
+//     domain: config.DOMAIN,
+//     ssh_port: config.SSH_PORT,
+//   });
+
+// const endpointStack = new EndpointStack(app, 'EndpointStack', {vpc: networkStack.vpc});
+
+Aspects.of(app).add(new AwsSolutionsChecks({ verbose: true }))
