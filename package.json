@@ -8,7 +8,8 @@
     "deploy": "cdk deploy --all --outputs-file cdk-outputs.json",
     "test": "jest",
     "build": "cdk synth",
-    "prettier-format": "prettier --config .prettierrc './**/*.ts' --write"
+    "prettier-format": "prettier --config .prettierrc './**/*.ts' --write",
+    "prepare": "husky install"
   },
   "devDependencies": {
     "@eslint/js": "^9.4.0",
@@ -23,7 +24,8 @@
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
     "typescript": "~5.4.5",
-    "typescript-eslint": "^7.12.0"
+    "typescript-eslint": "^7.12.0",
+    "husky": "^8.0.0"
   },
   "dependencies": {
     "@aws-cdk/aws-ec2": "^1.204.0",
@@ -32,5 +34,11 @@
     "constructs": "^10.0.0",
     "dotenv": "^16.4.5",
     "source-map-support": "^0.5.21"
+  },
+  "lint-staged": {
+    "*.{ts,js}": "eslint --cache --fix",
+    "*.{ts,js,css,md}": "prettier --write",
+    "*.js": "eslint --cache --fix",
+    "*.{js,css,md}": "prettier --write"
   }
 }
