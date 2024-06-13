@@ -7,8 +7,14 @@ import { k8sWorkerStack } from '../lib/stacks/k8s-worker-stack';
 import { k8sControlPlaneStack } from '../lib/stacks/k8s-control-plane-stack';
 import { EndpointStack } from '../lib/stacks/endpoint-stack';
 import { getConfig } from '../lib/utils/config';
+import { exit } from 'process';
 
 const config = getConfig();
+
+if (config.DOMAIN == "") {
+  console.log('ERROR: Please add .env file to root folder with values of DOMAIN and SSH_PORT')
+  exit(1);
+}
 
 const app = new cdk.App();
 const networkStack = new NetworkStack(app, 'NetworkStack');
