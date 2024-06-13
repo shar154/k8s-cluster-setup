@@ -6,7 +6,7 @@ import { Construct } from 'constructs';
 export class NetworkStack extends cdk.Stack {
   public readonly vpc: Vpc;
 
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props: cdk.StackProps & { miserMode: boolean }) {
     super(scope, id, {
       env: { 
         account: process.env.CDK_DEFAULT_ACCOUNT,
@@ -27,7 +27,7 @@ export class NetworkStack extends cdk.Stack {
         {
           cidrMask: 24,
           name: 'Application',
-          subnetType: SubnetType.PRIVATE_ISOLATED,
+          subnetType: props.miserMode ? SubnetType.PUBLIC : SubnetType.PRIVATE_ISOLATED,
         },
         {
           cidrMask: 28,
@@ -37,7 +37,7 @@ export class NetworkStack extends cdk.Stack {
       ],
       restrictDefaultSecurityGroup: false,
       // Configure a single NAT Gateway
-      natGateways: 1,
+      natGateways: props.miserMode ? 0 : 1,
       natGatewaySubnets: {
         subnetGroupName: 'Public' // Ensure NAT Gateway is placed in a public subnet
       }

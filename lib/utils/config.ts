@@ -8,10 +8,12 @@ dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 export type ConfigProps = {
     DOMAIN: string;
     SSH_PORT: string;
+    MISER_MODE: boolean,
 };
 
 // 3. Define a function to retrieve our env variables
 export const getConfig = (): ConfigProps => ({
-    DOMAIN: process.env.DOMAIN || "",
+    DOMAIN: process.env.DOMAIN || '',
     SSH_PORT: process.env.SSH_PORT || '22',
+    MISER_MODE: ((process.env.MISER_MODE || 'true') == 'true')
 });
